@@ -1,0 +1,70 @@
+{
+    // Python 文件
+    "[python]": {
+        "files.encoding": "utf8"
+    },
+    
+    // JavaScript/TypeScript 文件
+    "[javascript]": {
+        "files.encoding": "utf8"
+    },
+    "[typescript]": {
+        "files.encoding": "utf8"
+    },
+    "[javascriptreact]": {
+        "files.encoding": "utf8"
+    },
+    "[typescriptreact]": {
+        "files.encoding": "utf8"
+    },
+    
+    // Web 前端文件
+    "[html]": {
+        "files.encoding": "utf8"
+    },
+    "[css]": {
+        "files.encoding": "utf8"
+    },
+    "[scss]": {
+        "files.encoding": "utf8"
+    },
+    
+    // 配置文件（容易乱码的重灾区）
+    "[json]": {
+        "files.encoding": "utf8"
+    },
+    "[jsonc]": {
+        "files.encoding": "utf8"
+    },
+    "[yaml]": {
+        "files.encoding": "utf8"
+    },
+    "[xml]": {
+        "files.encoding": "utf8"
+    },
+    
+    // Shell/脚本文件
+    "[shellscript]": {
+        "files.encoding": "utf8"
+    },
+    "[bat]": {
+        "files.encoding": "utf8"
+    },
+    "[powershell]": {
+        "files.encoding": "utf8"
+    },
+    
+    // Markdown 文档（中文笔记常用）
+    "[markdown]": {
+        "files.encoding": "utf8"
+    },
+    
+    // SQL 文件
+    "[sql]": {
+        "files.encoding": "utf8"
+    },
+    
+    // 通用默认设置（兜底）
+    "files.encoding": "utf8",
+    "python-envs.defaultEnvManager": "ms-python.python:system"
+}

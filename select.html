@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>选择平台 - 无水印视频下载</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: #f2f7f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            padding: 24px;
+            touch-action: manipulation;
+        }
+
+        /* ================================================================
+           CONTAINER
+           ================================================================ */
+        .container {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ================================================================
+           PLATFORM CARDS
+           ================================================================ */
+        .platforms {
+            display: flex;
+            gap: 48px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 48px;
+        }
+
+        .platform-card {
+            width: 500px;
+            background: #fff;
+            border-radius: 32px;
+            padding: 56px 48px 48px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            box-shadow:
+                0 2px 6px rgba(0, 0, 0, .05),
+                0 16px 48px rgba(0, 0, 0, .08);
+            animation:
+                fade-in .5s ease-out both,
+                card-breathe 6s ease-in-out 1.2s infinite;
+        }
+
+        .platform-card.douyin {
+            animation-delay: .25s, 1.45s;
+        }
+
+        .platform-card.bilibili {
+            animation-delay: .35s, 1.55s;
+        }
+
+        @keyframes fade-in {
+            0% {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes card-breathe {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.015);
+            }
+        }
+
+        /* ================================================================
+           CARD CONTENT
+           ================================================================ */
+        .card-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .card-logo {
+            width: 168px;
+            height: 168px;
+            border-radius: 34px;
+            background: #f5f8f4;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .card-logo img {
+            width: 112px;
+            height: 112px;
+            object-fit: contain;
+        }
+
+        .platform-card.douyin .card-logo {
+            transition: transform .3s cubic-bezier(.34, 1.56, .64, 1);
+        }
+
+        .platform-card.douyin:hover .card-logo {
+            animation: logo-bounce .5s ease;
+        }
+
+        @keyframes logo-bounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            30% {
+                transform: translateY(-10px);
+            }
+
+            50% {
+                transform: translateY(0);
+            }
+
+            70% {
+                transform: translateY(-4px);
+            }
+        }
+
+        .platform-card.bilibili .card-logo {
+            transition: transform .3s cubic-bezier(.34, 1.56, .64, 1);
+        }
+
+        .platform-card.bilibili:hover .card-logo {
+            animation: logo-bounce .5s ease;
+        }
+
+        .card-meta {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-name {
+            font-size: 1.35rem;
+            font-weight: 600;
+            color: #1a2e15;
+            letter-spacing: -.01em;
+        }
+
+        .card-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: .85rem;
+            font-weight: 500;
+            padding: 4px 14px;
+            border-radius: 20px;
+        }
+
+        .card-badge .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .card-badge.active {
+            background: #e8f5e4;
+            color: #2d7a1e;
+        }
+
+        .card-badge.active .dot {
+            background: #2d7a1e;
+        }
+
+        .card-badge.coming {
+            background: #fef7e6;
+            color: #a67c00;
+        }
+
+        .card-badge.coming .dot {
+            background: #d4a800;
+        }
+
+        /* ================================================================
+           FEATURES
+           ================================================================ */
+        .card-features {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            margin-bottom: 12px;
+            padding: 0;
+            text-align: left;
+        }
+
+        .card-features li {
+            font-size: .9rem;
+            color: #6a7a62;
+            font-weight: 400;
+            line-height: 1.5;
+            padding-left: 22px;
+            position: relative;
+        }
+
+        .card-features li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 8px;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--accent, #3a7a2a);
+        }
+
+        .platform-card.douyin {
+            --accent: #ff2d55;
+        }
+
+        .platform-card.bilibili {
+            --accent: #00a1d6;
+        }
+
+        /* ================================================================
+           CARD FOOTER + ARROW BUTTON
+           ================================================================ */
+        .card-footer {
+            margin-top: auto;
+            padding-top: 24px;
+            border-top: 1px solid #eef3ed;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .card-footer-label {
+            font-size: .88rem;
+            font-weight: 500;
+            color: #9ab092;
+        }
+
+        .card-arrow {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--accent, #3a7a2a);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform .25s cubic-bezier(.22, 1, .36, 1),
+                box-shadow .25s ease;
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
+            flex-shrink: 0;
+        }
+
+        .card-arrow svg {
+            width: 26px;
+            height: 26px;
+            stroke: #fff;
+            stroke-width: 2.5;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .card-arrow:hover {
+            transform: translateX(4px) scale(1.06);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, .15);
+        }
+
+        .card-arrow:active {
+            transform: translateX(2px) scale(.95);
+            transition-duration: .06s;
+        }
+
+        .card-arrow:focus-visible {
+            box-shadow: 0 0 0 3px #3a7a2a;
+        }
+
+        .card-arrow.coming-soon {
+            background: #c0d0c0;
+            cursor: default;
+        }
+
+        .card-arrow.coming-soon:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* ================================================================
+           BACK LINK
+           ================================================================ */
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #3a7a2a;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 40px;
+            cursor: pointer;
+            background: #e8f2e4;
+            border: 2px solid #c8dcc4;
+            transition: transform .25s cubic-bezier(.22, 1, .36, 1),
+                box-shadow .25s ease,
+                background .2s;
+            animation: fade-in .5s ease-out .45s both;
+        }
+
+        .back-link:hover {
+            background: #dcecd6;
+            border-color: #a8c8a0;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(58, 122, 42, .18);
+        }
+
+        .back-link:active {
+            transform: scale(.96);
+        }
+
+        .back-link:focus-visible {
+            outline: 3px solid #3a7a2a;
+            outline-offset: 3px;
+        }
+
+        .back-link svg {
+            width: 22px;
+            height: 22px;
+            stroke: currentColor;
+            stroke-width: 2.5;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .back-wrap {
+            text-align: center;
+        }
+
+        /* ================================================================
+           MODAL
+           ================================================================ */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: rgba(20, 40, 15, .5);
+            -webkit-backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+            animation: fade-in .2s ease-out;
+        }
+
+        .modal-overlay[hidden] {
+            display: none;
+        }
+
+        .modal-content {
+            background: #fff;
+            border-radius: 28px;
+            padding: 48px 44px 40px;
+            max-width: 440px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, .15);
+            animation: modal-in .35s cubic-bezier(.22, 1, .36, 1);
+        }
+
+        @keyframes modal-in {
+            0% {
+                opacity: 0;
+                transform: scale(.92) translateY(12px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .modal-icon-wrap {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: #fef7e6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-icon-wrap svg {
+            width: 40px;
+            height: 40px;
+            fill: none;
+            stroke: #d4a800;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .modal-title {
+            font-size: 1.45rem;
+            font-weight: 600;
+            color: #1a2e15;
+            margin-bottom: 10px;
+        }
+
+        .modal-text {
+            font-size: 1.05rem;
+            color: #5a7a52;
+            line-height: 1.6;
+            margin-bottom: 28px;
+        }
+
+        .modal-btn {
+            padding: 14px 48px;
+            font-size: 1rem;
+            font-weight: 600;
+            font-family: inherit;
+            color: #fff;
+            background: #3a7a2a;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: transform .2s, box-shadow .2s;
+        }
+
+        .modal-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(58, 122, 42, .3);
+        }
+
+        .modal-btn:active {
+            transform: scale(.97);
+        }
+
+        .modal-btn:focus-visible {
+            outline: 3px solid #3a7a2a;
+            outline-offset: 3px;
+        }
+
+        /* ================================================================
+           RESPONSIVE
+           ================================================================ */
+        @media (max-width: 799px) {
+            .platforms {
+                gap: 32px;
+            }
+
+            .platform-card {
+                width: 100%;
+                max-width: 500px;
+            }
+        }
+
+        @media (max-width: 399px) {
+            body {
+                padding: 16px;
+            }
+
+            .platform-card {
+                padding: 40px 24px 32px;
+            }
+
+            .card-logo {
+                width: 120px;
+                height: 120px;
+            }
+
+            .card-logo img {
+                width: 80px;
+                height: 80px;
+            }
+
+            .card-name {
+                font-size: 1.1rem;
+            }
+
+            .card-features li {
+                font-size: .8rem;
+            }
+
+            .card-arrow {
+                width: 44px;
+                height: 44px;
+            }
+
+            .card-arrow svg {
+                width: 22px;
+                height: 22px;
+            }
+
+            .modal-content {
+                padding: 32px 24px 28px;
+            }
+        }
+
+        /* ================================================================
+           REDUCED MOTION
+           ================================================================ */
+        @media (prefers-reduced-motion: reduce) {
+
+            .platform-card,
+            .back-link {
+                animation: none;
+                opacity: 1;
+                transform: none;
+            }
+
+            .platform-card.douyin:hover .card-logo {
+                animation: none;
+            }
+
+            .card-arrow:hover {
+                transform: none;
+                box-shadow: none;
+            }
+
+            .modal-content {
+                animation: none;
+            }
+
+            .modal-overlay {
+                animation: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="platforms">
+            <!-- 抖音 -->
+            <div class="platform-card douyin">
+                <div class="card-header">
+                    <div class="card-logo"><img src="PNG/douyin.png" alt="抖音"></div>
+                    <div class="card-meta">
+                        <div class="card-name">抖音</div>
+                        <span class="card-badge active"><span class="dot"></span>可用</span>
+                    </div>
+                </div>
+                <ul class="card-features">
+                    <li>支持短链接、视频链接</li>
+                    <li>自动去除水印</li>
+                    <li>高清画质下载</li>
+                </ul>
+                <div class="card-footer">
+                    <span class="card-footer-label">前往解析</span>
+                    <button class="card-arrow" aria-label="前往抖音解析" tabindex="0">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M5 12h14M13 5l7 7-7 7" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- B站 -->
+            <div class="platform-card bilibili">
+                <div class="card-header">
+                    <div class="card-logo"><img src="PNG/BiliBili.png" alt="哔哩哔哩"></div>
+                    <div class="card-meta">
+                        <div class="card-name">哔哩哔哩</div>
+                        <span class="card-badge active"><span class="dot"></span>可用</span>
+                    </div>
+                </div>
+                <ul class="card-features">
+                    <li>支持 BV 号、av 号</li>
+                    <li>多清晰度选择</li>
+                    <li>音视频分离下载</li>
+                </ul>
+                <div class="card-footer">
+                    <span class="card-footer-label">前往解析</span>
+                    <button class="card-arrow" aria-label="前往哔哩哔哩解析" tabindex="0">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M5 12h14M13 5l7 7-7 7" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="back-wrap">
+            <a class="back-link" role="button" tabindex="0" aria-label="返回首页">
+                <svg viewBox="0 0 24 24">
+                    <path d="M19 12H5M12 5l-7 7 7 7" />
+                </svg>
+                返回首页
+            </a>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="comingSoonModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" hidden>
+        <div class="modal-content">
+            <div class="modal-icon-wrap">
+                <svg viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 8v4M12 16h.01" />
+                </svg>
+            </div>
+            <h2 id="modalTitle" class="modal-title">功能开发中</h2>
+            <p class="modal-text">B站解析功能正在开发中，敬请期待</p>
+            <button class="modal-btn" id="modalConfirm">知道了</button>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            'use strict';
+
+            /* Arrow buttons — only these are interactive */
+            var douyinArrow = document.querySelector('.platform-card.douyin .card-arrow');
+            var bilibiliArrow = document.querySelector('.platform-card.bilibili .card-arrow');
+
+            douyinArrow.addEventListener('click', function (e) {
+                e.stopPropagation();
+                window.location.href = 'douyin.html';
+            });
+
+            bilibiliArrow.addEventListener('click', function (e) {
+                e.stopPropagation();
+                window.location.href = 'bilibili.html';
+            });
+
+            /* Arrow keyboard support */
+            douyinArrow.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    window.location.href = 'douyin.html';
+                }
+            });
+
+            bilibiliArrow.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    window.location.href = 'bilibili.html';
+                }
+            });
+
+            /* Back link */
+            var backLink = document.querySelector('.back-link');
+            backLink.addEventListener('click', function () {
+                window.location.href = 'welcome.html';
+            });
+            backLink.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.click();
+                }
+            });
+
+            /* Modal */
+            var modal = document.getElementById('comingSoonModal');
+            var modalBtn = document.getElementById('modalConfirm');
+            var prevFocus;
+
+            function showComingSoon() {
+                prevFocus = document.activeElement;
+                modal.removeAttribute('hidden');
+                modalBtn.focus();
+                document.addEventListener('keydown', trapKey);
+            }
+
+            function closeModal() {
+                modal.setAttribute('hidden', '');
+                document.removeEventListener('keydown', trapKey);
+                if (prevFocus) prevFocus.focus();
+            }
+
+            function trapKey(e) {
+                if (e.key === 'Escape') { closeModal(); return; }
+                if (e.key === 'Tab') {
+                    var f = modal.querySelectorAll('button, [href], input, [tabindex]:not([tabindex="-1"])');
+                    if (!f.length) return;
+                    var first = f[0], last = f[f.length - 1];
+                    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+                    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+                }
+            }
+
+            modalBtn.addEventListener('click', closeModal);
+            modal.addEventListener('click', function (e) {
+                if (e.target === modal) closeModal();
+            });
+        })();
+    </script>
+</body>
+
+</html>

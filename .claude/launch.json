@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "flask-server",
+      "runtimeExecutable": ".venv/Scripts/python",
+      "runtimeArgs": ["server.py"],
+      "port": 8888
+    },
+    {
+      "name": "welcome-server",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8080"],
+      "port": 8080
+    },
+    {
+      "name": "3d-front-server",
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": ["-Command", "Set-Location 'D:/AI Robot/DaiMa/3D front'; python -m http.server 3001"],
+      "port": 3001
+    }
+  ]
+}

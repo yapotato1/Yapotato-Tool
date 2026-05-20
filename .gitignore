@@ -1,0 +1,19 @@
+# B站 Cookie 文件（含敏感登录信息）
+bilibili_cookies.json
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+
+# 构建产物（PyInstaller）
+build/
+dist/
+*.exe
+
+# 外部二进制文件
+bin/
+
+# 下载的视频
+downloads/

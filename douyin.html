@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="zh-CN" style="color-scheme:light">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>抖音无水印视频下载器</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="icon" href="PNG/douyin.png" type="image/png">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600&family=Noto+Serif+SC:wght@600;700&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      /* 白色背景 + 抖音品牌色 */
+      --bg: #F8F9FA;
+      --card: #FFFFFF;
+      --card-border: #E8EAED;
+      --text: #161823;
+      --text2: #8A8D91;
+      --accent: #FE2C55;
+      --accent-dim: rgba(254, 44, 85, 0.08);
+      --accent-pink: #FE2C55;
+      --danger: #FF3355;
+      --danger-dim: rgba(255, 51, 85, 0.1);
+      --shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Noto Sans SC', -apple-system, sans-serif;
+      font-weight: 400;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      touch-action: manipulation;
+      font-size: clamp(16px, 2vw, 20px);
+      overflow-y: auto;
+      position: relative;
+    }
+
+    /* CRT 扫描线 - 可保留 */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      pointer-events: none;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, 0.02) 2px, rgba(0, 0, 0, 0.02) 4px);
+    }
+
+    /* ========== 保留你原来的彩色密文 Canvas ========== */
+    #glitchCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.35;
+      /* 透明度调低一些，以免干扰前景文字 */
+    }
+
+    /* 背景像素块（保留极淡纹理） */
+    .pixel-bg {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+      image-rendering: pixelated;
+    }
+
+    .pixel-block {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.03);
+      animation: pixel-drift 20s ease-in-out infinite;
+      animation-delay: calc(var(--drift-delay, 0) * 1s);
+    }
+
+    .pixel-block.lg {
+      width: 16px;
+      height: 16px;
+      box-shadow: 16px 0 rgba(0, 0, 0, 0.03), 32px 0 rgba(0, 0, 0, 0.03), 48px 0 rgba(0, 0, 0, 0.03), 0 16px rgba(0, 0, 0, 0.03), 16px 16px rgba(0, 0, 0, 0.03), 32px 16px rgba(0, 0, 0, 0.03), 48px 16px rgba(0, 0, 0, 0.03);
+    }
+
+    .pixel-block.sm {
+      width: 16px;
+      height: 16px;
+      box-shadow: 16px 0 rgba(0, 0, 0, 0.03), 0 16px rgba(0, 0, 0, 0.03), 16px 16px rgba(0, 0, 0, 0.03), 32px 16px rgba(0, 0, 0, 0.03);
+    }
+
+    .pixel-block.xs {
+      width: 4px;
+      height: 4px;
+      box-shadow: 4px 0 rgba(0, 0, 0, 0.03), 0 4px rgba(0, 0, 0, 0.03), 4px 4px rgba(0, 0, 0, 0.03);
+    }
+
+    @keyframes pixel-drift {
+
+      0%,
+      100% {
+        transform: translate(0, 0);
+      }
+
+      25% {
+        transform: translate(8px, -12px);
+      }
+
+      50% {
+        transform: translate(-4px, 8px);
+      }
+
+      75% {
+        transform: translate(12px, 4px);
+      }
+    }
+
+    /* ========== 入场动画关键帧 ========== */
+    @keyframes pop-in {
+      0% {
+        opacity: 0;
+        transform: scale(0.6);
+      }
+
+      60% {
+        opacity: 1;
+        transform: scale(1.08);
+      }
+
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    @keyframes fade-slide-up {
+      0% {
+        opacity: 0;
+        transform: translateY(24px);
+      }
+
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes slide-in-left {
+      0% {
+        opacity: 0;
+        transform: translateX(-20px);
+      }
+
+      100% {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes underline-grow {
+      0% {
+        width: 0;
+        opacity: 0;
+      }
+
+      100% {
+        width: 60px;
+        opacity: 1;
+      }
+    }
+
+    @keyframes card-breathe {
+
+      0%,
+      100% {
+        transform: scale(1);
+      }
+
+      50% {
+        transform: scale(1.008);
+      }
+    }
+
+    @keyframes shimmer-sweep {
+      0% {
+        background-position: 200% 0;
+      }
+
+      100% {
+        background-position: -200% 0;
+      }
+    }
+
+    @keyframes glow-breathe {
+
+      0%,
+      100% {
+        opacity: 0.3;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 0.6;
+        transform: scale(1.06);
+      }
+    }
+
+    /* ========== 动画工具类 ========== */
+    .anim-pop {
+      animation: pop-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+
+    .anim-fade-up {
+      animation: fade-slide-up 0.5s ease-out both;
+    }
+
+    .anim-slide-left {
+      animation: slide-in-left 0.4s ease-out both;
+    }
+
+    /* 带呼吸的入场（输入卡片使用） */
+    .anim-fade-up-breathe {
+      animation-name: fade-slide-up, card-breathe;
+      animation-duration: 0.5s, 4s;
+      animation-timing-function: ease-out, ease-in-out;
+      animation-delay: var(--delay, 0s), calc(var(--delay, 0s) + 0.6s);
+      animation-fill-mode: both, none;
+      animation-iteration-count: 1, infinite;
+    }
+
+    /* 标题下划线 */
+    .header h1::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 3px;
+      background: var(--accent);
+      border-radius: 2px;
+      animation: underline-grow 0.4s ease-out 0.3s both;
+    }
+
+    /* ========== 交互增强 ========== */
+
+    /* 解析按钮 shimmer 扫描 */
+    .btn-primary::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg,
+          transparent 0%,
+          rgba(255, 255, 255, 0.2) 50%,
+          transparent 100%);
+      background-size: 200% 100%;
+      background-repeat: no-repeat;
+      pointer-events: none;
+      border-radius: 12px;
+      animation: shimmer-sweep 1.2s linear infinite;
+      animation-play-state: paused;
+    }
+
+    .btn-primary:hover::after {
+      animation-play-state: running;
+    }
+
+    .btn-primary:hover:active {
+      transform: scale(0.97);
+      transition-duration: 0.06s;
+    }
+
+    /* 下载按钮发光环 */
+    .btn-download::before {
+      content: '';
+      position: absolute;
+      inset: -6px;
+      border-radius: 14px;
+      background: var(--accent);
+      opacity: 0;
+      z-index: -1;
+      filter: blur(14px);
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+
+    .btn-download:hover::before {
+      opacity: 0.35;
+      animation: glow-breathe 2s ease-in-out infinite;
+    }
+
+    .btn-download:hover:active {
+      transform: translateY(0) scale(0.97) !important;
+      transition-duration: 0.06s !important;
+    }
+
+    .btn-download:hover:active::before {
+      opacity: 0 !important;
+      animation: none !important;
+    }
+
+    /* 历史记录项入场 */
+    .history-item {
+      animation: fade-slide-up 0.4s ease-out both;
+    }
+
+    /* ========== 页面布局 ========== */
+    .page-wrapper {
+      width: 100%;
+      max-width: 720px;
+      min-height: 100vh;
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 0 20px;
+    }
+
+    .hero-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 60vh;
+      padding: 64px 0 30px;
+    }
+
+    /* ========== 头部 ========== */
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .header .icon {
+      font-size: 48px;
+      margin-bottom: 8px;
+      filter: drop-shadow(0 0 12px rgba(254, 44, 85, 0.15));
+    }
+
+    .header h1 {
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+      position: relative;
+      display: inline-block;
+    }
+
+    .header p {
+      color: var(--text2);
+      font-size: clamp(14px, 1.8vw, 17px);
+      font-weight: 400;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 6px 14px;
+      color: var(--text2);
+      text-decoration: none;
+      font-size: 15px;
+      border-radius: 6px;
+      transition: color .2s, background .2s;
+    }
+
+    .back-link:hover {
+      color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    /* ========== 输入卡片 ========== */
+    .input-card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 8px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+      transition: box-shadow .3s;
+    }
+
+    .input-card:focus-within {
+      box-shadow: 0 4px 24px rgba(254, 44, 85, 0.08);
+      border-color: var(--accent);
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .input-row input {
+      flex: 1;
+      padding: 14px 18px;
+      font-size: 17px;
+      font-family: 'Noto Sans SC', sans-serif;
+      font-weight: 400;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-size: clamp(16px, 1.8vw, 20px);
+    }
+
+    .input-row input::placeholder {
+      color: #B0B3B8;
+    }
+
+    /* ========== 按钮 ========== */
+    .btn {
+      padding: 14px 28px;
+      font-size: clamp(16px, 1.8vw, 20px);
+      font-family: 'Noto Sans SC', sans-serif;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      border-radius: 12px;
+      transition: transform .15s, box-shadow .2s, background .2s;
+      white-space: nowrap;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #FFFFFF;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary:hover {
+      background: #E6234A;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(254, 44, 85, 0.3);
+    }
+
+    .btn-primary:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none;
+    }
+
+    .btn-download {
+      background: transparent;
+      color: var(--accent);
+      border: 2px solid var(--accent);
+      width: 100%;
+      position: relative;
+      z-index: 0;
+      margin-top: 16px;
+      padding: 16px;
+      font-size: clamp(20px, 2.4vw, 26px);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(8px);
+      transition: opacity .35s ease, visibility .35s ease, transform .35s ease, background .2s, box-shadow .2s;
+    }
+
+    .btn-download.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .btn-download:hover {
+      background: var(--accent-dim);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(254, 44, 85, 0.15);
+    }
+
+    .btn-download:disabled {
+      opacity: .35 !important;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none;
+    }
+
+    /* ========== 状态提示 ========== */
+    .status {
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-8px);
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      font-size: 15px;
+      border-radius: 12px;
+      transition: opacity .3s ease, visibility .3s ease, transform .3s ease;
+    }
+
+    .status.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .status.info {
+      background: var(--accent-dim);
+      color: var(--accent);
+    }
+
+    .status.error {
+      background: var(--danger-dim);
+      color: var(--danger);
+    }
+
+    .status.success {
+      background: var(--accent-dim);
+      color: var(--accent);
+    }
+
+    /* ========== Spinner ========== */
+    .spinner {
+      display: none;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #FFFFFF;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin-left: auto;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* ========== 预览卡片 ========== */
+    .preview-card {
+      opacity: 0;
+      visibility: hidden;
+      max-height: 0;
+      overflow: hidden;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      margin-bottom: 0;
+      box-shadow: var(--shadow);
+      transition: opacity .4s ease, visibility .4s ease, max-height .5s ease, margin-bottom .4s ease;
+    }
+
+    .preview-card.show {
+      opacity: 1;
+      visibility: visible;
+      max-height: 600px;
+      margin-bottom: 20px;
+    }
+
+    .preview-video {
+      width: 100%;
+      max-height: 400px;
+      background: #000;
+      display: block;
+      border-radius: 16px 16px 0 0;
+    }
+
+    .preview-info {
+      padding: 18px 20px;
+    }
+
+    .preview-info .title {
+      font-size: clamp(16px, 1.8vw, 20px);
+      font-weight: 500;
+      margin-bottom: 6px;
+      word-break: break-all;
+    }
+
+    .preview-info .meta {
+      color: var(--text2);
+      font-size: clamp(14px, 1.4vw, 17px);
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .preview-info .meta span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* ========== 历史记录 ========== */
+    .history-section {
+      padding: 24px 0 16px;
+      border-top: 1px solid var(--card-border);
+    }
+
+    .history-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .history-header h3 {
+      font-size: 20px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .history-header h3 .count {
+      font-size: 15px;
+      color: var(--text2);
+      font-weight: 400;
+    }
+
+    .btn-clear {
+      font-size: 13px;
+      color: var(--text2);
+      background: transparent;
+      border: 1px solid var(--card-border);
+      padding: 4px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: color .2s, border-color .2s, background .2s;
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .btn-clear.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .btn-clear:hover {
+      color: var(--danger);
+      border-color: var(--danger);
+      background: var(--danger-dim);
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .history-item {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: border .2s, background .2s, transform .15s;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+    }
+
+    .history-item:hover {
+      background: #F0F2F5;
+    }
+
+    .history-item:active {
+      transform: scale(.98);
+    }
+
+    .history-item .h-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--accent-dim);
+      border-radius: 8px;
+    }
+
+    .history-item .h-name {
+      flex: 1;
+      font-size: clamp(15px, 1.6vw, 19px);
+      color: var(--text);
+      word-break: break-all;
+      min-width: 0;
+      line-height: 1.3;
+    }
+
+    .history-item .h-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      flex-shrink: 0;
+      gap: 2px;
+    }
+
+    .history-item .h-del {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: var(--text2);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity .2s, color .2s;
+      border-radius: 6px;
+    }
+
+    @media (hover: hover) {
+      .history-item:hover .h-del {
+        opacity: .5;
+      }
+
+      .history-item .h-del:hover {
+        opacity: 1;
+        color: var(--danger);
+        background: var(--danger-dim);
+      }
+    }
+
+    @media (hover: none) {
+      .history-item .h-del {
+        opacity: .5;
+      }
+    }
+
+    .history-item .h-time {
+      font-size: 12px;
+      color: var(--text2);
+      opacity: .7;
+      white-space: nowrap;
+    }
+
+    .history-item .h-badge {
+      font-size: 10px;
+      padding: 1px 6px;
+      background: var(--accent-dim);
+      color: var(--accent);
+      border-radius: 4px;
+    }
+
+    .history-empty {
+      text-align: center;
+      color: var(--text2);
+      padding: 40px 0;
+      font-size: 16px;
+      opacity: .6;
+    }
+
+    /* ========== 响应式 ========== */
+    @media (max-width: 399px) {
+      .page-wrapper {
+        padding: 0 12px;
+      }
+
+      .hero-area {
+        padding: 40px 0 20px;
+        min-height: 55vh;
+      }
+
+      .header h1 {
+        font-size: 24px;
+      }
+
+      .input-row {
+        flex-direction: column;
+      }
+
+      .btn {
+        width: 100%;
+      }
+
+      .btn-primary {
+        justify-content: center;
+        display: flex;
+      }
+    }
+
+    @media (min-width: 400px) and (max-width: 549px) {
+      .input-row {
+        flex-direction: column;
+      }
+
+      .btn {
+        width: 100%;
+      }
+
+      .btn-primary {
+        justify-content: center;
+        display: flex;
+      }
+    }
+
+    @media (min-width: 768px) {
+      .page-wrapper {
+        padding: 0 30px;
+      }
+
+      .preview-video {
+        max-height: 500px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+      .anim-pop,
+      .anim-fade-up,
+      .anim-fade-up-breathe,
+      .anim-slide-left,
+      .header h1::after,
+      .history-item {
+        animation: none;
+        opacity: 1;
+        transform: none;
+      }
+
+      .btn-primary::after {
+        display: none;
+      }
+
+      .btn-download::before {
+        display: none;
+        opacity: 0;
+      }
+
+      .btn-download:hover::before {
+        opacity: 0;
+        animation: none;
+      }
+
+      .input-card {
+        animation: none;
+      }
+
+      .modal-overlay.show { animation: none; opacity: 1; }
+      .modal-overlay.show .modal-box { animation: none; opacity: 1; transform: none; }
+      .modal-overlay.closing .modal-box { animation: none; opacity: 1; transform: none; }
+    }
+
+    /* ===== 确认弹窗 ===== */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-overlay.show {
+      display: flex;
+    }
+
+    .modal-overlay.show .modal-box {
+      animation: jelly-in .4s cubic-bezier(.34, 1.56, .64, 1);
+    }
+
+    .modal-overlay.closing .modal-box {
+      animation: jelly-out .25s ease-in forwards;
+      pointer-events: none;
+    }
+
+    @keyframes jelly-in {
+      0% { opacity: 0; transform: scale(0.8) translateY(10px); }
+      50% { opacity: 1; transform: scale(1.08) translateY(-2px); }
+      70% { transform: scale(0.95); }
+      85% { transform: scale(1.02); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    @keyframes jelly-out {
+      0% { opacity: 1; transform: scale(1); }
+      25% { transform: scale(1.03); }
+      100% { opacity: 0; transform: scale(0.7) translateY(15px); }
+    }
+
+    .modal-box {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 28px 32px 24px;
+      max-width: 380px;
+      width: 90%;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+
+    .modal-body {
+      font-size: 15px;
+      color: var(--text2);
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .modal-btn {
+      padding: 10px 24px;
+      font-size: 15px;
+      font-family: 'Noto Sans SC', sans-serif;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: transform .15s, opacity .2s;
+    }
+
+    .modal-btn:hover { transform: translateY(-1px); }
+    .modal-btn:active { transform: translateY(0); }
+
+    .modal-btn-cancel {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--card-border);
+    }
+
+    .modal-btn-confirm {
+      background: var(--danger-dim);
+      color: var(--danger);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ======== 彩色密文 Canvas（保留旧版） ======== -->
+  <canvas id="glitchCanvas"></canvas>
+
+  <div class="pixel-bg">
+    <div class="pixel-block lg" style="top:6%;left:5%;--drift-delay:0"></div>
+    <div class="pixel-block sm" style="top:58%;right:6%;--drift-delay:1.2"></div>
+    <div class="pixel-block lg" style="bottom:10%;left:18%;--drift-delay:2.5"></div>
+    <div class="pixel-block sm" style="top:32%;left:62%;--drift-delay:.6"></div>
+    <div class="pixel-block lg" style="top:18%;right:14%;--drift-delay:3.8"></div>
+    <div class="pixel-block sm" style="bottom:28%;right:22%;--drift-delay:1.9"></div>
+    <div class="pixel-block xs" style="top:12%;left:42%;--drift-delay:4.2"></div>
+    <div class="pixel-block xs" style="top:72%;left:8%;--drift-delay:.3"></div>
+    <div class="pixel-block xs" style="bottom:20%;right:8%;--drift-delay:2.8"></div>
+  </div>
+
+  <div class="page-wrapper">
+    <div class="hero-area">
+      <!-- Header -->
+      <div class="header">
+        <div class="icon anim-pop" style="display:flex;justify-content:center;margin-bottom:8px;animation-delay:0.05s">
+          <img src="PNG/douyin.png" alt="抖音"
+            style="width:clamp(70px,10vw,110px);height:clamp(70px,10vw,110px);object-fit:contain;">
+        </div>
+        <h1 class="anim-fade-up" style="animation-delay:0.15s">抖音无水印下载器</h1>
+        <p class="anim-fade-up" style="animation-delay:0.25s">粘贴抖音视频链接 · 解析 · 下载 · 无水印</p>
+        <a href="select.html" class="back-link anim-slide-left" style="animation-delay:0.35s">← 返回平台选择</a>
+      </div>
+
+      <!-- 输入 -->
+      <div class="input-card anim-fade-up" style="animation-delay:0.45s">
+        <div class="input-row">
+          <input type="url" id="urlInput" name="videoUrl" autocomplete="off" aria-label="抖音视频链接"
+            placeholder="粘贴抖音分享链接，如 https://v.douyin.com/xxxxx/">
+          <button class="btn btn-primary" id="parseBtn" onclick="parseVideo()">
+            <span id="btnText">🔍 解析</span>
+            <span class="spinner" id="spinner" aria-hidden="true"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 状态提示 -->
+      <div class="status" id="status" aria-live="polite" role="status"></div>
+
+      <!-- 预览 -->
+      <div class="preview-card" id="previewCard">
+        <video class="preview-video" id="previewVideo" controls preload="metadata"></video>
+        <div class="preview-info">
+          <div class="title" id="previewTitle"></div>
+          <div class="meta">
+            <span>👤 <span id="previewAuthor"></span></span>
+            <span>⏱️ <span id="previewDuration"></span></span>
+            <span>🆔 <span id="previewId"></span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 下载 -->
+      <button class="btn btn-download" id="downloadBtn" onclick="downloadVideo()" aria-label="下载无水印视频">
+        📥 下载无水印视频
+      </button>
+    </div>
+
+    <!-- 历史 -->
+    <div class="history-section anim-fade-up" style="animation-delay:0.7s">
+      <div class="history-header">
+        <h3>📋 下载历史 <span class="count" id="historyCount"></span></h3>
+        <button class="btn-clear" id="btnClear" onclick="clearHistory()">🗑 清空</button>
+      </div>
+      <div class="history-list" id="historyList">
+        <div class="history-empty">📭 暂无下载记录</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======== 彩色密文 Canvas 脚本（保留旧版） ======== -->
+  <script>
+    (function glitchBG() {
+      const canvas = document.getElementById('glitchCanvas');
+      const ctx = canvas.getContext('2d');
+
+      const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+[]{}|;:,.<>?/~';
+      const PALETTE = [
+        { r: 0, g: 250, b: 240 },   // #00FAF0 抖音青蓝
+        { r: 255, g: 0, b: 80 },   // #FF0050 抖音品红
+        { r: 120, g: 200, b: 250 },   // 浅蓝过渡
+        { r: 255, g: 100, b: 180 },   // 粉紫过渡
+      ];
+      const FONT_SIZE = 32;
+      const COL_W = 26;
+      const ROW_H = 44;
+
+      let grid = [];
+      let cols, rows;
+
+      function randChar() { return CHARS[Math.floor(Math.random() * CHARS.length)]; }
+      function randColor() { return PALETTE[Math.floor(Math.random() * PALETTE.length)]; }
+
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        cols = Math.ceil(canvas.width / COL_W) + 1;
+        rows = Math.ceil(canvas.height / ROW_H) + 1;
+        grid = [];
+        for (let i = 0; i < cols * rows; i++) {
+          const col = randColor();
+          grid.push({
+            char: randChar(),
+            r: col.r, g: col.g, b: col.b,
+            tr: col.r, tg: col.g, tb: col.b,
+            progress: 1
+          });
+        }
+      }
+
+      let frameCount = 0;
+      let scrollY = 0;
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.font = FONT_SIZE + 'px "Courier New", monospace';
+        ctx.textBaseline = 'top';
+
+        // 平滑缓慢向下流动（每帧 0.08px）
+        scrollY += 0.08;
+        const totalH = rows * ROW_H;
+        if (scrollY >= totalH) scrollY -= totalH;
+
+        // 随机突变
+        frameCount++;
+        if (frameCount % 3 === 0) {
+          const count = Math.max(1, Math.floor(grid.length * 0.01));
+          for (let w = 0; w < count; w++) {
+            const idx = Math.floor(Math.random() * grid.length);
+            const c = grid[idx];
+            c.char = randChar();
+            const nc = randColor();
+            c.tr = nc.r; c.tg = nc.g; c.tb = nc.b;
+            c.progress = 0;
+          }
+        }
+
+        // 颜色平滑过渡
+        for (let i = 0; i < grid.length; i++) {
+          const c = grid[i];
+          c.r += (c.tr - c.r) * 0.045;
+          c.g += (c.tg - c.g) * 0.045;
+          c.b += (c.tb - c.b) * 0.045;
+        }
+
+        // 双缓冲渲染实现无缝平滑滚动
+        for (let pass = 0; pass < 2; pass++) {
+          const yBase = scrollY - pass * totalH;
+          for (let i = 0; i < grid.length; i++) {
+            const c = grid[i];
+            const x = (i % cols) * COL_W;
+            const y = Math.floor(i / cols) * ROW_H + yBase;
+            if (y < -ROW_H || y > canvas.height + ROW_H) continue;
+            const distFromCenter = 1 - Math.abs(y / canvas.height - 0.5) * 1.2;
+            const alpha = Math.max(0, distFromCenter) * 0.8;
+            if (alpha > 0.03) {
+              ctx.fillStyle = 'rgba(' + Math.floor(c.r) + ',' + Math.floor(c.g) + ',' + Math.floor(c.b) + ',' + alpha + ')';
+              ctx.fillText(c.char, x, y + 2);
+            }
+          }
+        }
+
+        requestAnimationFrame(draw);
+      }
+
+      resize();
+      window.addEventListener('resize', resize);
+      draw();
+    })();
+  </script>
+
+  <!-- ======== 逻辑脚本 ======== -->
+  <script>
+    const API = 'http://127.0.0.1:8888';
+    let currentVideo = null;
+
+    function formatDuration(ms) {
+      if (!ms || ms === 0) return '--';
+      const s = Math.floor(ms / 1000);
+      const m = Math.floor(s / 60);
+      const sec = s % 60;
+      return m + ':' + String(sec).padStart(2, '0');
+    }
+
+    function formatTime(ts) {
+      const d = new Date(ts * 1000);
+      const now = new Date();
+      const diff = now - d;
+      if (diff < 60000) return '刚刚';
+      if (diff < 3600000) return Math.floor(diff / 60000) + ' 分钟前';
+      if (diff < 86400000) return Math.floor(diff / 3600000) + ' 小时前';
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    function showStatus(msg, type) {
+      const el = document.getElementById('status');
+      el.textContent = msg;
+      el.className = 'status show ' + type;
+    }
+    function hideStatus() { document.getElementById('status').className = 'status'; }
+
+    function setLoading(loading) {
+      const btn = document.getElementById('parseBtn');
+      const spinner = document.getElementById('spinner');
+      const btnText = document.getElementById('btnText');
+      btn.disabled = loading;
+      spinner.style.display = loading ? 'block' : 'none';
+      btnText.textContent = loading ? '⏳ 解析中...' : '🔍 解析';
+    }
+
+    async function parseVideo() {
+      const input = document.getElementById('urlInput');
+      const url = input.value.trim();
+      if (!url) { showStatus('⚠️ 请先粘贴抖音视频链接', 'error'); input.focus(); return; }
+      if (!url.includes('douyin.com') && !url.includes('iesdouyin.com')) {
+        showStatus('⚠️ 请输入有效的抖音视频链接', 'error');
+        return;
+      }
+      hideStatus();
+      setLoading(true);
+      document.getElementById('previewCard').classList.remove('show');
+      document.getElementById('downloadBtn').classList.remove('show');
+
+      try {
+        const resp = await fetch(API + '/api/parse', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ link: url })
+        });
+        const data = await resp.json();
+        if (!data.success) {
+          const errorMsg = data.error?.message || data.error || '解析失败';
+          showStatus('❌ ' + errorMsg, 'error');
+          return;
+        }
+        currentVideo = data.data;
+        document.getElementById('previewVideo').src = currentVideo.video_url;
+        document.getElementById('previewTitle').textContent = currentVideo.title || '无标题';
+        document.getElementById('previewAuthor').textContent = currentVideo.author || '未知';
+        document.getElementById('previewDuration').textContent = formatDuration(currentVideo.duration * 1000);
+        document.getElementById('previewId').textContent = currentVideo.video_id || '--';
+        document.getElementById('previewCard').classList.add('show');
+        document.getElementById('downloadBtn').classList.add('show');
+        showStatus('✅ 解析成功！点击下方按钮下载', 'success');
+      } catch (err) {
+        showStatus('❌ 网络错误：' + err.message, 'error');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function downloadVideo() {
+      if (!currentVideo) return;
+      const btn = document.getElementById('downloadBtn');
+      btn.textContent = '⏳ 下载中...';
+      btn.disabled = true;
+      hideStatus();
+
+      try {
+        const history = JSON.parse(localStorage.getItem('douyinDownloadHistory') || '[]');
+        history.unshift({
+          title: currentVideo.title || '无标题',
+          author: currentVideo.author || '未知',
+          video_id: currentVideo.video_id,
+          time: new Date().toISOString()
+        });
+        if (history.length > 20) history.pop();
+        localStorage.setItem('douyinDownloadHistory', JSON.stringify(history));
+
+        const a = document.createElement('a');
+        a.href = API + '/api/download?video_id=' + encodeURIComponent(currentVideo.video_id) + '&url=' + encodeURIComponent(currentVideo.video_url);
+        a.download = currentVideo.filename || 'douyin_video.mp4';
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        showStatus('✅ 下载已开始！请查看浏览器下载列表', 'success');
+        loadHistory();
+      } catch (err) {
+        showStatus('❌ 下载错误：' + err.message, 'error');
+      } finally {
+        btn.textContent = '📥 下载无水印视频';
+        btn.disabled = false;
+      }
+    }
+
+    function loadHistory() {
+      const list = document.getElementById('historyList');
+      const count = document.getElementById('historyCount');
+      const clearBtn = document.getElementById('btnClear');
+      const history = JSON.parse(localStorage.getItem('douyinDownloadHistory') || '[]');
+      if (history.length === 0) {
+        count.textContent = '';
+        clearBtn.classList.remove('show');
+        list.innerHTML = '<div class="history-empty">📭 暂无下载记录</div>';
+        return;
+      }
+      count.textContent = '(' + history.length + '条)';
+      clearBtn.classList.add('show');
+      list.innerHTML = history.map(function (item, index) {
+        const safeTitle = escapeHtml(item.title) || '未知视频';
+        const timeStr = item.time ? formatTime(new Date(item.time).getTime() / 1000) : '';
+        const isFresh = item.time && (Date.now() - new Date(item.time).getTime()) < 60000;
+        return '<div class="history-item" style="animation-delay:' + (index * 0.04) + 's" onclick="reParse(\'' + item.video_id + '\')" title="点击重新解析">' +
+          '<div class="h-icon">📹</div>' +
+          '<div class="h-name">' + safeTitle + '</div>' +
+          '<div class="h-meta">' +
+          '<span class="h-time">' + timeStr + '</span>' +
+          (isFresh ? '<span class="h-badge">最新</span>' : '') +
+          '</div>' +
+          '<button class="h-del" onclick="event.stopPropagation();deleteHistoryItem(\'' + item.video_id + '\')" title="删除此记录">✕</button>' +
+          '</div>';
+      }).join('');
+    }
+
+    function deleteHistoryItem(videoId) {
+      showConfirmModal('删除记录', '确定删除此条下载记录？', function() {
+        const history = JSON.parse(localStorage.getItem('douyinDownloadHistory') || '[]');
+        const filtered = history.filter(function (item) { return item.video_id !== videoId; });
+        localStorage.setItem('douyinDownloadHistory', JSON.stringify(filtered));
+        showStatus('🗑 已删除该记录', 'info');
+        loadHistory();
+      });
+    }
+
+    function clearHistory() {
+      showConfirmModal('清空历史', '确定清空所有下载记录？', function() {
+        localStorage.removeItem('douyinDownloadHistory');
+        loadHistory();
+      });
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str || '';
+      return div.innerHTML;
+    }
+
+    function reParse(videoId) {
+      document.getElementById('urlInput').value = 'https://www.douyin.com/video/' + videoId;
+      parseVideo();
+    }
+
+    // ===== 确认弹窗 =====
+    var _modalCallback = null;
+
+    function showConfirmModal(title, body, onConfirm) {
+      _modalCallback = onConfirm;
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalBody').textContent = body;
+      document.getElementById('modalOverlay').classList.add('show');
+    }
+
+    function closeModalWithAnim(callback) {
+      var overlay = document.getElementById('modalOverlay');
+      if (!overlay.classList.contains('show') || overlay.classList.contains('closing')) return;
+      overlay.classList.add('closing');
+      var box = overlay.querySelector('.modal-box');
+      function onEnd() {
+        box.removeEventListener('animationend', onEnd);
+        overlay.classList.remove('show', 'closing');
+        if (callback) callback();
+      }
+      box.addEventListener('animationend', onEnd);
+    }
+
+    function modalConfirm() {
+      var cb = _modalCallback;
+      _modalCallback = null;
+      closeModalWithAnim(cb);
+    }
+
+    function modalCancel() {
+      _modalCallback = null;
+      closeModalWithAnim();
+    }
+
+    document.getElementById('urlInput').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') parseVideo();
+    });
+    document.getElementById('urlInput').focus();
+    loadHistory();
+  </script>
+
+  <!-- 确认弹窗 -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-box">
+      <div class="modal-title" id="modalTitle"></div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-cancel" onclick="modalCancel()">取消</button>
+        <button class="modal-btn modal-btn-confirm" onclick="modalConfirm()">确定</button>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>

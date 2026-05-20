@@ -1,0 +1,1630 @@
+<!DOCTYPE html>
+<html lang="zh-CN" style="color-scheme:light">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>哔哩哔哩视频下载器</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="icon" href="PNG/BiliBili.png" type="image/png">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600&family=Noto+Serif+SC:wght@600;700&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #F4F5F7;
+      --card: #FFFFFF;
+      --card-border: #E5E7EB;
+      --text: #18191C;
+      --text2: #999AAA;
+      --accent: #00A1D6;
+      --accent-dim: rgba(0, 161, 214, 0.08);
+      --accent-pink: #FB7299;
+      --danger: #FF5577;
+      --danger-dim: rgba(255, 85, 119, 0.1);
+      --shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Noto Sans SC', -apple-system, sans-serif;
+      font-weight: 400;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      touch-action: manipulation;
+      font-size: clamp(16px, 2vw, 20px);
+      overflow-y: auto;
+      position: relative;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      pointer-events: none;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, 0.02) 2px, rgba(0, 0, 0, 0.02) 4px);
+    }
+
+    #glitchCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.3;
+    }
+
+    .pixel-bg {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+      image-rendering: pixelated;
+    }
+
+    .pixel-block {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.03);
+      animation: pixel-drift 20s ease-in-out infinite;
+      animation-delay: calc(var(--drift-delay, 0) * 1s);
+    }
+
+    .pixel-block.lg { width: 16px; height: 16px; box-shadow: 16px 0 rgba(0,0,0,0.03), 32px 0 rgba(0,0,0,0.03), 48px 0 rgba(0,0,0,0.03), 0 16px rgba(0,0,0,0.03), 16px 16px rgba(0,0,0,0.03), 32px 16px rgba(0,0,0,0.03), 48px 16px rgba(0,0,0,0.03); }
+    .pixel-block.sm { width: 16px; height: 16px; box-shadow: 16px 0 rgba(0,0,0,0.03), 0 16px rgba(0,0,0,0.03), 16px 16px rgba(0,0,0,0.03), 32px 16px rgba(0,0,0,0.03); }
+    .pixel-block.xs { width: 4px; height: 4px; box-shadow: 4px 0 rgba(0,0,0,0.03), 0 4px rgba(0,0,0,0.03), 4px 4px rgba(0,0,0,0.03); }
+
+    @keyframes pixel-drift {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(8px, -12px); }
+      50% { transform: translate(-4px, 8px); }
+      75% { transform: translate(12px, 4px); }
+    }
+
+    @keyframes pop-in {
+      0% { opacity: 0; transform: scale(0.6); }
+      60% { opacity: 1; transform: scale(1.08); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes fade-slide-up {
+      0% { opacity: 0; transform: translateY(24px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slide-in-left {
+      0% { opacity: 0; transform: translateX(-20px); }
+      100% { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes underline-grow {
+      0% { width: 0; opacity: 0; }
+      100% { width: 60px; opacity: 1; }
+    }
+
+    @keyframes card-breathe {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.008); }
+    }
+
+    @keyframes shimmer-sweep {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    @keyframes glow-breathe {
+      0%, 100% { opacity: 0.3; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.06); }
+    }
+
+    .anim-pop { animation: pop-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+    .anim-fade-up { animation: fade-slide-up 0.5s ease-out both; }
+    .anim-slide-left { animation: slide-in-left 0.4s ease-out both; }
+
+    .anim-fade-up-breathe {
+      animation-name: fade-slide-up, card-breathe;
+      animation-duration: 0.5s, 4s;
+      animation-timing-function: ease-out, ease-in-out;
+      animation-delay: var(--delay, 0s), calc(var(--delay, 0s) + 0.6s);
+      animation-fill-mode: both, none;
+      animation-iteration-count: 1, infinite;
+    }
+
+    .header h1::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 3px;
+      background: var(--accent);
+      border-radius: 2px;
+      animation: underline-grow 0.4s ease-out 0.3s both;
+    }
+
+    .btn-primary::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg,
+          transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%);
+      background-size: 200% 100%;
+      background-repeat: no-repeat;
+      pointer-events: none;
+      border-radius: 12px;
+      animation: shimmer-sweep 1.2s linear infinite;
+      animation-play-state: paused;
+    }
+
+    .btn-primary:hover::after { animation-play-state: running; }
+    .btn-primary:hover:active { transform: scale(0.97); transition-duration: 0.06s; }
+
+    .btn-download::before {
+      content: '';
+      position: absolute;
+      inset: -6px;
+      border-radius: 14px;
+      background: var(--accent);
+      opacity: 0;
+      z-index: -1;
+      filter: blur(14px);
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+
+    .btn-download:hover::before { opacity: 0.35; animation: glow-breathe 2s ease-in-out infinite; }
+    .btn-download:hover:active { transform: translateY(0) scale(0.97) !important; transition-duration: 0.06s !important; }
+    .btn-download:hover:active::before { opacity: 0 !important; animation: none !important; }
+
+    .page-wrapper {
+      width: 100%;
+      max-width: 720px;
+      min-height: 100vh;
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 0 20px;
+    }
+
+    .hero-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 60vh;
+      padding: 64px 0 30px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .header .icon {
+      font-size: 48px;
+      margin-bottom: 8px;
+    }
+
+    .header h1 {
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+      position: relative;
+      display: inline-block;
+    }
+
+    .header p {
+      color: var(--text2);
+      font-size: clamp(14px, 1.8vw, 17px);
+      font-weight: 400;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 6px 14px;
+      color: var(--text2);
+      text-decoration: none;
+      font-size: 15px;
+      border-radius: 6px;
+      transition: color .2s, background .2s;
+    }
+
+    .back-link:hover { color: var(--accent); background: var(--accent-dim); }
+
+    .input-card {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 8px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+      transition: box-shadow .3s;
+    }
+
+    .input-card:focus-within {
+      box-shadow: 0 4px 24px rgba(0, 161, 214, 0.12);
+      border-color: var(--accent);
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .input-row input {
+      flex: 1;
+      padding: 14px 18px;
+      font-size: 17px;
+      font-family: 'Noto Sans SC', sans-serif;
+      font-weight: 400;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+    }
+
+    .input-row input::placeholder { color: #B0B3B8; }
+
+    .btn {
+      padding: 14px 28px;
+      font-size: clamp(16px, 1.8vw, 20px);
+      font-family: 'Noto Sans SC', sans-serif;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      border-radius: 12px;
+      transition: transform .15s, box-shadow .2s, background .2s;
+      white-space: nowrap;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #FFFFFF;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary:hover {
+      background: #008EBD;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0, 161, 214, 0.3);
+    }
+
+    .btn-primary:disabled {
+      opacity: .4;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none;
+    }
+
+    .btn-download {
+      background: transparent;
+      color: var(--accent);
+      border: 2px solid var(--accent);
+      width: 100%;
+      position: relative;
+      z-index: 0;
+      margin-top: 16px;
+      padding: 16px;
+      font-size: clamp(20px, 2.4vw, 26px);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(8px);
+      transition: opacity .35s ease, visibility .35s ease, transform .35s ease, background .2s, box-shadow .2s;
+    }
+
+    .btn-download.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .download-row.show .btn-download,
+    .download-row.show .btn-audio {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .download-row .btn-download {
+      margin-top: 0;
+      font-size: clamp(16px, 1.8vw, 20px);
+    }
+
+    .download-row .btn-audio {
+      font-size: clamp(16px, 1.8vw, 20px);
+    }
+
+    .btn-download:hover {
+      background: var(--accent-dim);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0, 161, 214, 0.15);
+    }
+
+    .btn-download:disabled {
+      opacity: .35 !important;
+      pointer-events: none;
+      transform: translateY(0);
+    }
+
+    .download-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(8px);
+      transition: opacity .35s ease, visibility .35s ease, transform .35s ease;
+    }
+
+    .download-row.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .btn-audio {
+      background: transparent;
+      color: var(--accent2, #fb7299);
+      border: 2px solid var(--accent2, #fb7299);
+      flex: 0 0 auto;
+      width: auto;
+      padding: 16px 24px;
+      font-size: clamp(16px, 1.8vw, 20px);
+      position: relative;
+      z-index: 0;
+      transition: background .2s, box-shadow .2s, transform .15s;
+      white-space: nowrap;
+    }
+
+    .btn-audio:hover {
+      background: rgba(251, 114, 153, 0.08);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(251, 114, 153, 0.15);
+    }
+
+    .btn-audio:disabled {
+      opacity: .35;
+      pointer-events: none;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 500px) {
+      .download-row { flex-direction: column; }
+      .btn-audio { width: 100%; }
+    }
+
+    .status {
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-8px);
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      font-size: 15px;
+      border-radius: 12px;
+      transition: opacity .3s ease, visibility .3s ease, transform .3s ease;
+    }
+
+    .status.show { opacity: 1; visibility: visible; transform: translateY(0); }
+    .status.info { background: var(--accent-dim); color: var(--accent); }
+    .status.error { background: var(--danger-dim); color: var(--danger); }
+    .status.success { background: var(--accent-dim); color: var(--accent); }
+
+    .spinner {
+      display: none;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #FFFFFF;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin-left: auto;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .preview-card {
+      opacity: 0;
+      visibility: hidden;
+      max-height: 0;
+      overflow: hidden;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      margin-bottom: 0;
+      box-shadow: var(--shadow);
+      transition: opacity .4s ease, visibility .4s ease, max-height .5s ease, margin-bottom .4s ease;
+    }
+
+    .preview-card.show {
+      opacity: 1;
+      visibility: visible;
+      max-height: 700px;
+      margin-bottom: 20px;
+    }
+
+    .preview-video {
+      width: 100%;
+      max-height: 400px;
+      background: #000;
+      display: block;
+      border-radius: 16px 16px 0 0;
+    }
+
+    .preview-info {
+      padding: 18px 20px;
+    }
+
+    .preview-info .title {
+      font-size: clamp(16px, 1.8vw, 20px);
+      font-weight: 500;
+      margin-bottom: 6px;
+      word-break: break-all;
+    }
+
+    .preview-info .meta {
+      color: var(--text2);
+      font-size: clamp(14px, 1.4vw, 17px);
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .preview-info .meta span { display: flex; align-items: center; gap: 4px; }
+
+    /* Controls: P selector + Quality selector */
+    .controls-row {
+      opacity: 0;
+      visibility: hidden;
+      max-height: 0;
+      overflow: hidden;
+      display: flex;
+      gap: 16px;
+      margin-bottom: 0;
+      transition: opacity .35s ease, visibility .35s ease, max-height .35s ease, margin-bottom .35s ease;
+    }
+
+    .controls-row.show {
+      opacity: 1;
+      visibility: visible;
+      max-height: 80px;
+      margin-bottom: 4px;
+    }
+
+    .control-group {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .control-group label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text2);
+    }
+
+    .control-select {
+      padding: 10px 14px;
+      font-size: 15px;
+      font-family: 'Noto Sans SC', sans-serif;
+      background: var(--bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      color: var(--text);
+      outline: none;
+      cursor: pointer;
+      transition: border-color .2s;
+    }
+
+    .control-select:focus {
+      border-color: var(--accent);
+    }
+
+    .audio-notice {
+      font-size: 12px;
+      color: var(--text2);
+      text-align: center;
+      padding: 6px 0 2px;
+      opacity: 0;
+      transition: opacity .3s;
+    }
+
+    .audio-notice.show { opacity: 1; }
+
+    .history-section {
+      padding: 24px 0 16px;
+      border-top: 1px solid var(--card-border);
+    }
+
+    .history-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .history-header h3 {
+      font-size: 20px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .history-header h3 .count {
+      font-size: 15px;
+      color: var(--text2);
+      font-weight: 400;
+    }
+
+    .btn-clear {
+      font-size: 13px;
+      color: var(--text2);
+      background: transparent;
+      border: 1px solid var(--card-border);
+      padding: 4px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: color .2s, border-color .2s, background .2s;
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .btn-clear.show { opacity: 1; visibility: visible; }
+    .btn-clear:hover { color: var(--danger); border-color: var(--danger); background: var(--danger-dim); }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .history-item {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: border .2s, background .2s, transform .15s;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      animation: fade-slide-up 0.4s ease-out both;
+    }
+
+    .history-item:hover { background: #F0F2F5; }
+    .history-item:active { transform: scale(.98); }
+
+    .history-item .h-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--accent-dim);
+      border-radius: 8px;
+    }
+
+    .history-item .h-name {
+      flex: 1;
+      font-size: clamp(15px, 1.6vw, 19px);
+      color: var(--text);
+      word-break: break-all;
+      min-width: 0;
+      line-height: 1.3;
+    }
+
+    .history-item .h-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      flex-shrink: 0;
+      gap: 2px;
+    }
+
+    .history-item .h-del {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: var(--text2);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity .2s, color .2s;
+      border-radius: 6px;
+    }
+
+    @media (hover: hover) {
+      .history-item:hover .h-del { opacity: .5; }
+      .history-item .h-del:hover { opacity: 1; color: var(--danger); background: var(--danger-dim); }
+    }
+    @media (hover: none) { .history-item .h-del { opacity: .5; } }
+
+    .history-item .h-time { font-size: 12px; color: var(--text2); opacity: .7; white-space: nowrap; }
+    .history-item .h-badge { font-size: 10px; padding: 1px 6px; background: var(--accent-dim); color: var(--accent); border-radius: 4px; }
+    .history-empty { text-align: center; color: var(--text2); padding: 40px 0; font-size: 16px; opacity: .6; }
+
+    @media (max-width: 399px) {
+      .page-wrapper { padding: 0 12px; }
+      .hero-area { padding: 40px 0 20px; min-height: 55vh; }
+      .header h1 { font-size: 24px; }
+      .input-row { flex-direction: column; }
+      .btn { width: 100%; }
+      .btn-primary { justify-content: center; display: flex; }
+      .controls-row { flex-direction: column; }
+      .controls-row.show { max-height: 160px; }
+    }
+
+    @media (min-width: 400px) and (max-width: 549px) {
+      .input-row { flex-direction: column; }
+      .btn { width: 100%; }
+      .btn-primary { justify-content: center; display: flex; }
+    }
+
+    @media (min-width: 768px) {
+      .page-wrapper { padding: 0 30px; }
+      .preview-video { max-height: 500px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .anim-pop, .anim-fade-up, .anim-fade-up-breathe, .anim-slide-left,
+      .header h1::after, .history-item { animation: none; opacity: 1; transform: none; }
+      .btn-primary::after { display: none; }
+      .btn-download::before { display: none; opacity: 0; }
+      .btn-download:hover::before { opacity: 0; animation: none; }
+      .modal-overlay.show { animation: none; opacity: 1; }
+      .modal-overlay.show .modal-box { animation: none; opacity: 1; transform: none; }
+      .modal-overlay.closing .modal-box { animation: none; opacity: 1; transform: none; }
+    }
+
+    /* ===== Cookie 设置面板 ===== */
+    .cookie-section {
+      margin-bottom: 16px;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .cookie-toggle {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      cursor: pointer;
+      user-select: none;
+      font-size: 15px;
+      transition: background .2s;
+    }
+
+    .cookie-toggle:hover { background: var(--accent-dim); }
+
+    .cookie-indicator {
+      font-size: 12px;
+      padding: 2px 10px;
+      border-radius: 10px;
+      background: var(--danger-dim);
+      color: var(--danger);
+    }
+
+    .cookie-indicator.active {
+      background: #E8F5E9;
+      color: #2E7D32;
+    }
+
+    .cookie-panel {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height .35s ease, padding .35s ease;
+      padding: 0 16px;
+    }
+
+    .cookie-panel.open {
+      max-height: 420px;
+      padding: 0 16px 16px;
+    }
+
+    .cookie-field {
+      margin-bottom: 10px;
+    }
+
+    .cookie-field label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text2);
+      margin-bottom: 4px;
+    }
+
+    .cookie-field .required { color: var(--danger); }
+
+    .cookie-field input {
+      width: 100%;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-family: 'Noto Sans SC', sans-serif;
+      background: var(--bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      color: var(--text);
+      outline: none;
+      transition: border-color .2s;
+      box-sizing: border-box;
+    }
+
+    .cookie-field input:focus { border-color: var(--accent); }
+
+    .cookie-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn-small {
+      padding: 8px 16px;
+      font-size: 14px;
+      font-family: 'Noto Sans SC', sans-serif;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: transform .15s, box-shadow .2s, background .2s;
+    }
+
+    .btn-small:hover { transform: translateY(-1px); }
+
+    .btn-secondary {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--card-border);
+    }
+
+    .btn-danger {
+      background: var(--danger-dim);
+      color: var(--danger);
+    }
+
+    .cookie-status {
+      font-size: 13px;
+      margin-top: 8px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      display: none;
+    }
+
+    .cookie-status.show { display: block; }
+    .cookie-status.ok { background: #E8F5E9; color: #2E7D32; }
+    .cookie-status.err { background: var(--danger-dim); color: var(--danger); }
+
+    .cookie-hint {
+      font-size: 12px;
+      color: var(--text2);
+      margin-top: 10px;
+      line-height: 1.5;
+      opacity: 0.7;
+    }
+
+    /* ===== 确认弹窗 ===== */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-overlay.show {
+      display: flex;
+    }
+
+    .modal-overlay.show .modal-box {
+      animation: jelly-in .4s cubic-bezier(.34, 1.56, .64, 1);
+    }
+
+    .modal-overlay.closing .modal-box {
+      animation: jelly-out .25s ease-in forwards;
+      pointer-events: none;
+    }
+
+    @keyframes jelly-in {
+      0% { opacity: 0; transform: scale(0.8) translateY(10px); }
+      50% { opacity: 1; transform: scale(1.08) translateY(-2px); }
+      70% { transform: scale(0.95); }
+      85% { transform: scale(1.02); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    @keyframes jelly-out {
+      0% { opacity: 1; transform: scale(1); }
+      25% { transform: scale(1.03); }
+      100% { opacity: 0; transform: scale(0.7) translateY(15px); }
+    }
+
+    .modal-box {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 28px 32px 24px;
+      max-width: 380px;
+      width: 90%;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+
+    .modal-body {
+      font-size: 15px;
+      color: var(--text2);
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .modal-btn {
+      padding: 10px 24px;
+      font-size: 15px;
+      font-family: 'Noto Sans SC', sans-serif;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: transform .15s, opacity .2s;
+    }
+
+    .modal-btn:hover { transform: translateY(-1px); }
+    .modal-btn:active { transform: translateY(0); }
+
+    .modal-btn-cancel {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--card-border);
+    }
+
+    .modal-btn-confirm {
+      background: var(--danger-dim);
+      color: var(--danger);
+    }
+  </style>
+</head>
+
+<body>
+
+  <canvas id="glitchCanvas"></canvas>
+
+  <div class="pixel-bg">
+    <div class="pixel-block lg" style="top:6%;left:5%;--drift-delay:0"></div>
+    <div class="pixel-block sm" style="top:58%;right:6%;--drift-delay:1.2"></div>
+    <div class="pixel-block lg" style="bottom:10%;left:18%;--drift-delay:2.5"></div>
+    <div class="pixel-block sm" style="top:32%;left:62%;--drift-delay:.6"></div>
+    <div class="pixel-block lg" style="top:18%;right:14%;--drift-delay:3.8"></div>
+    <div class="pixel-block sm" style="bottom:28%;right:22%;--drift-delay:1.9"></div>
+    <div class="pixel-block xs" style="top:12%;left:42%;--drift-delay:4.2"></div>
+    <div class="pixel-block xs" style="top:72%;left:8%;--drift-delay:.3"></div>
+    <div class="pixel-block xs" style="bottom:20%;right:8%;--drift-delay:2.8"></div>
+  </div>
+
+  <div class="page-wrapper">
+    <div class="hero-area">
+      <div class="header">
+        <div class="icon anim-pop" style="display:flex;justify-content:center;margin-bottom:8px;animation-delay:0.05s">
+          <img src="PNG/BiliBili.png" alt="哔哩哔哩"
+            style="width:clamp(70px,10vw,110px);height:clamp(70px,10vw,110px);object-fit:contain;">
+        </div>
+        <h1 class="anim-fade-up" style="animation-delay:0.15s">哔哩哔哩视频下载器</h1>
+        <p class="anim-fade-up" style="animation-delay:0.25s">粘贴B站视频链接 · 解析 · 下载 · 多清晰度</p>
+        <a href="select.html" class="back-link anim-slide-left" style="animation-delay:0.35s">← 返回平台选择</a>
+      </div>
+
+      <div class="input-card anim-fade-up" style="animation-delay:0.45s">
+        <div class="input-row">
+          <input type="url" id="urlInput" name="videoUrl" autocomplete="off" aria-label="B站视频链接"
+            placeholder="粘贴B站链接，如 https://www.bilibili.com/video/BV1xx411c7mD/ 或电影 /bangumi/play/epXXXXX">
+          <button class="btn btn-primary" id="parseBtn">
+            <span id="btnText">🚀 解析</span>
+            <span class="spinner" id="spinner" aria-hidden="true"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Cookie 设置面板 -->
+      <div class="cookie-section anim-fade-up" style="animation-delay:0.50s">
+        <div class="cookie-toggle" id="cookieToggle">
+          <span>🔑 Cookie 设置</span>
+          <span class="cookie-indicator" id="cookieIndicator">未设置</span>
+        </div>
+        <div class="cookie-panel" id="cookiePanel">
+          <div class="cookie-field">
+            <label for="cookieSESSDATA">SESSDATA <span class="required">*</span></label>
+            <input type="password" id="cookieSESSDATA" placeholder="登录B站后从浏览器复制" autocomplete="off">
+          </div>
+          <div class="cookie-field">
+            <label for="cookieBiliJct">bili_jct</label>
+            <input type="text" id="cookieBiliJct" placeholder="CSRF Token（可选）" autocomplete="off">
+          </div>
+          <div class="cookie-field">
+            <label for="cookieDedeUserID">DedeUserID</label>
+            <input type="text" id="cookieDedeUserID" placeholder="用户 ID（可选）" autocomplete="off">
+          </div>
+          <div class="cookie-actions">
+            <button class="btn-small" id="cookieSaveBtn" style="background:var(--accent);color:#fff;">保存</button>
+            <button class="btn-small btn-secondary" id="cookieValidateBtn">验证</button>
+            <button class="btn-small btn-danger" id="cookieClearBtn">清除</button>
+          </div>
+          <div class="cookie-status" id="cookieStatus"></div>
+          <div class="cookie-hint">
+            💡 操作步骤：浏览器登录B站 → F12 → Application → Cookies → bilibili.com → 复制 SESSDATA 的值 → 粘贴到上方
+          </div>
+        </div>
+      </div>
+
+      <div class="status" id="status" aria-live="polite" role="status"></div>
+
+      <div class="preview-card" id="previewCard">
+        <video class="preview-video" id="previewVideo" controls preload="metadata"></video>
+        <div class="preview-info">
+          <div class="title" id="previewTitle"></div>
+          <div class="meta">
+            <span>👤 <span id="previewAuthor"></span></span>
+            <span>⏱️ <span id="previewDuration"></span></span>
+            <span>🆔 <span id="previewId"></span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- P selector + Quality selector -->
+      <div class="controls-row" id="controlsRow">
+        <div class="control-group">
+          <label for="pageSelect">📑 分P</label>
+          <select class="control-select" id="pageSelect"></select>
+        </div>
+        <div class="control-group">
+          <label for="qualitySelect">🎯 清晰度</label>
+          <select class="control-select" id="qualitySelect"></select>
+        </div>
+      </div>
+
+      <div class="audio-notice" id="audioNotice">ℹ️ 下载视频无音频轨道，如需声音需配合 FFmpeg 合并</div>
+
+      <div class="download-row" id="downloadRow">
+        <button class="btn btn-download" id="downloadBtn" aria-label="下载视频" style="flex:1;">
+          📥 下载视频
+        </button>
+        <button class="btn btn-audio" id="downloadAudioBtn" aria-label="仅下载音频">
+          🎵 仅音频
+        </button>
+      </div>
+    </div>
+
+    <div class="history-section anim-fade-up" style="animation-delay:0.7s">
+      <div class="history-header">
+        <h3>📋 下载历史 <span class="count" id="historyCount"></span></h3>
+        <button class="btn-clear" id="btnClear">🗑 清空</button>
+      </div>
+      <div class="history-list" id="historyList">
+        <div class="history-empty">📭 暂无下载记录</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Glitch Canvas Background -->
+  <script>
+    (function glitchBG() {
+      const canvas = document.getElementById('glitchCanvas');
+      const ctx = canvas.getContext('2d');
+      const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+[]{}|;:,.<>?/~';
+      const PALETTE = [
+        { r: 0, g: 161, b: 214 },
+        { r: 251, g: 114, b: 153 },
+        { r: 100, g: 200, b: 255 },
+        { r: 255, g: 150, b: 200 },
+      ];
+      const FONT_SIZE = 32;
+      const COL_W = 26;
+      const ROW_H = 44;
+
+      let grid = [];
+      let cols, rows;
+
+      function randChar() { return CHARS[Math.floor(Math.random() * CHARS.length)]; }
+      function randColor() { return PALETTE[Math.floor(Math.random() * PALETTE.length)]; }
+
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        cols = Math.ceil(canvas.width / COL_W) + 1;
+        rows = Math.ceil(canvas.height / ROW_H) + 1;
+        grid = [];
+        for (let i = 0; i < cols * rows; i++) {
+          const col = randColor();
+          grid.push({
+            char: randChar(),
+            r: col.r, g: col.g, b: col.b,
+            tr: col.r, tg: col.g, tb: col.b,
+            progress: 1
+          });
+        }
+      }
+
+      let frameCount = 0;
+      let scrollY = 0;
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.font = FONT_SIZE + 'px "Courier New", monospace';
+        ctx.textBaseline = 'top';
+
+        scrollY += 0.08;
+        const totalH = rows * ROW_H;
+        if (scrollY >= totalH) scrollY -= totalH;
+
+        frameCount++;
+        if (frameCount % 3 === 0) {
+          const count = Math.max(1, Math.floor(grid.length * 0.01));
+          for (let w = 0; w < count; w++) {
+            const idx = Math.floor(Math.random() * grid.length);
+            const c = grid[idx];
+            c.char = randChar();
+            const nc = randColor();
+            c.tr = nc.r; c.tg = nc.g; c.tb = nc.b;
+            c.progress = 0;
+          }
+        }
+
+        for (let i = 0; i < grid.length; i++) {
+          const c = grid[i];
+          c.r += (c.tr - c.r) * 0.045;
+          c.g += (c.tg - c.g) * 0.045;
+          c.b += (c.tb - c.b) * 0.045;
+        }
+
+        for (let pass = 0; pass < 2; pass++) {
+          const yBase = scrollY - pass * totalH;
+          for (let i = 0; i < grid.length; i++) {
+            const c = grid[i];
+            const x = (i % cols) * COL_W;
+            const y = Math.floor(i / cols) * ROW_H + yBase;
+            if (y < -ROW_H || y > canvas.height + ROW_H) continue;
+            const distFromCenter = 1 - Math.abs(y / canvas.height - 0.5) * 1.2;
+            const alpha = Math.max(0, distFromCenter) * 0.8;
+            if (alpha > 0.03) {
+              ctx.fillStyle = 'rgba(' + Math.floor(c.r) + ',' + Math.floor(c.g) + ',' + Math.floor(c.b) + ',' + alpha + ')';
+              ctx.fillText(c.char, x, y + 2);
+            }
+          }
+        }
+        requestAnimationFrame(draw);
+      }
+
+      resize();
+      window.addEventListener('resize', resize);
+      draw();
+    })();
+  </script>
+
+  <!-- App Logic -->
+  <script>
+    const API = 'http://127.0.0.1:8888';
+    let currentData = null;
+    let currentPageIndex = 0;
+    let ffmpegAvailable = false;
+
+    function formatDuration(sec) {
+      if (!sec || sec === 0) return '--';
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return m + ':' + String(s).padStart(2, '0');
+    }
+
+    function formatTime(ts) {
+      const d = new Date(ts * 1000);
+      const now = new Date();
+      const diff = now - d;
+      if (diff < 60000) return '刚刚';
+      if (diff < 3600000) return Math.floor(diff / 60000) + ' 分钟前';
+      if (diff < 86400000) return Math.floor(diff / 3600000) + ' 小时前';
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
+    function showStatus(msg, type) {
+      const el = document.getElementById('status');
+      el.textContent = msg;
+      el.className = 'status show ' + type;
+    }
+    function hideStatus() { document.getElementById('status').className = 'status'; }
+
+    function setLoading(loading) {
+      const btn = document.getElementById('parseBtn');
+      const spinner = document.getElementById('spinner');
+      const btnText = document.getElementById('btnText');
+      btn.disabled = loading;
+      spinner.style.display = loading ? 'block' : 'none';
+      btnText.textContent = loading ? '⏳ 解析中...' : '🚀 解析';
+    }
+
+    async function parseVideo() {
+      const input = document.getElementById('urlInput');
+      const url = input.value.trim();
+      if (!url) { showStatus('⚠️ 请先粘贴B站视频链接', 'error'); input.focus(); return; }
+
+      const isBilibili = url.includes('bilibili.com') || url.includes('b23.tv') ||
+        /^BV[a-zA-Z0-9]{10}$/.test(url) || /^av\d+$/i.test(url);
+      if (!isBilibili) {
+        showStatus('⚠️ 请输入有效的B站视频链接或BV号', 'error');
+        return;
+      }
+
+      hideStatus();
+      setLoading(true);
+      document.getElementById('previewCard').classList.remove('show');
+      document.getElementById('downloadRow').classList.remove('show');
+      document.getElementById('controlsRow').classList.remove('show');
+      document.getElementById('audioNotice').classList.remove('show');
+
+      try {
+        const resp = await fetch(API + '/api/bilibili/parse', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ link: url })
+        });
+        const data = await resp.json();
+        if (!data.success) {
+          const errorMsg = data.error?.message || data.error || '解析失败';
+          showStatus('❌ ' + errorMsg, 'error');
+          return;
+        }
+        currentData = data.data;
+        currentPageIndex = 0;
+
+        // Fill preview
+        const pages = currentData.pages || [];
+        if (pages.length === 0) {
+          showStatus('❌ 未获取到视频分P数据', 'error');
+          return;
+        }
+
+        // Show first page
+        applyPage(0);
+
+        // Fill P selector
+        fillPageSelect(pages);
+        fillQualitySelect(pages[0]);
+
+        document.getElementById('previewCard').classList.add('show');
+        document.getElementById('controlsRow').classList.add('show');
+        document.getElementById('audioNotice').classList.add('show');
+        document.getElementById('downloadRow').classList.add('show');
+        updateDownloadBtnText();
+        showStatus('✅ 解析成功！选择清晰度后下载', 'success');
+      } catch (err) {
+        showStatus('❌ 网络错误：' + err.message, 'error');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function applyPage(idx) {
+      const pages = currentData.pages;
+      const page = pages[idx];
+      currentPageIndex = idx;
+
+      const stream = page.video_streams[0] || {};
+      document.getElementById('previewVideo').src = stream.url || '';
+      document.getElementById('previewTitle').textContent = currentData.title || '无标题';
+      document.getElementById('previewAuthor').textContent = currentData.author || '未知';
+      document.getElementById('previewDuration').textContent = formatDuration(currentData.duration || 0);
+      document.getElementById('previewId').textContent = currentData.bvid || '--';
+    }
+
+    function fillPageSelect(pages) {
+      const sel = document.getElementById('pageSelect');
+      sel.innerHTML = pages.map(function(p, i) {
+        var label = 'P' + p.page + ' ' + (p.part || '');
+        return '<option value="' + i + '">' + label + '</option>';
+      }).join('');
+      sel.onchange = function() {
+        var idx = parseInt(this.value);
+        applyPage(idx);
+        fillQualitySelect(currentData.pages[idx]);
+      };
+    }
+
+    function fillQualitySelect(page) {
+      const sel = document.getElementById('qualitySelect');
+      if (!page.video_streams || page.video_streams.length === 0) {
+        sel.innerHTML = '<option value="-1">无可用画质</option>';
+        return;
+      }
+      sel.innerHTML = page.video_streams.map(function(v, i) {
+        return '<option value="' + i + '">' + v.quality + '</option>';
+      }).join('');
+    }
+
+    function getSelectedStream() {
+      const page = currentData.pages[currentPageIndex];
+      const qi = parseInt(document.getElementById('qualitySelect').value);
+      return page.video_streams[qi] || page.video_streams[0] || null;
+    }
+
+    function updateDownloadBtnText() {
+      const btn = document.getElementById('downloadBtn');
+      if (btn.disabled) return;
+      btn.textContent = ffmpegAvailable ? '📥 下载视频（含音频）' : '📥 下载视频（仅画面）';
+    }
+
+    async function downloadVideo() {
+      if (!currentData) return;
+      const page = currentData.pages[currentPageIndex];
+      const stream = getSelectedStream();
+      if (!stream || !stream.url) {
+        showStatus('❌ 未找到可下载的视频流', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('downloadBtn');
+      const abtn = document.getElementById('downloadAudioBtn');
+      btn.textContent = ffmpegAvailable ? '⏳ 正在下载合并...' : '⏳ 下载中...';
+      btn.disabled = true;
+      abtn.disabled = true;
+      hideStatus();
+
+      try {
+        const history = JSON.parse(localStorage.getItem('bilibiliDownloadHistory') || '[]');
+        history.unshift({
+          title: currentData.title || '无标题',
+          author: currentData.author || '未知',
+          video_id: currentData.bvid,
+          time: new Date().toISOString()
+        });
+        if (history.length > 20) history.pop();
+        localStorage.setItem('bilibiliDownloadHistory', JSON.stringify(history));
+
+        const a = document.createElement('a');
+        const epParam = page.ep_id ? '&ep_id=' + encodeURIComponent(page.ep_id) : '';
+        a.href = API + '/api/bilibili/download?bvid=' + encodeURIComponent(currentData.bvid) +
+          '&cid=' + encodeURIComponent(page.cid) +
+          '&quality_id=' + encodeURIComponent(stream.id || '') +
+          '&filename=' + encodeURIComponent(currentData.filename || 'bilibili_video.mp4') +
+          epParam;
+        a.download = currentData.filename || 'bilibili_video.mp4';
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        showStatus(ffmpegAvailable ? '✅ 下载完成！视频已含音频' : '✅ 下载已开始！视频仅画面，无音频轨道', 'success');
+        loadHistory();
+      } catch (err) {
+        showStatus('❌ 下载错误：' + err.message, 'error');
+      } finally {
+        btn.textContent = ffmpegAvailable ? '📥 下载视频（含音频）' : '📥 下载视频（仅画面）';
+        btn.disabled = false;
+        abtn.disabled = false;
+      }
+    }
+
+    async function downloadAudio() {
+      if (!currentData) return;
+      const page = currentData.pages[currentPageIndex];
+      if (!page.audio_streams || page.audio_streams.length === 0) {
+        showStatus('❌ 该视频无独立音频流', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('downloadAudioBtn');
+      const vbtn = document.getElementById('downloadBtn');
+      btn.textContent = '⏳ 下载中...';
+      btn.disabled = true;
+      vbtn.disabled = true;
+      hideStatus();
+
+      try {
+        var audioFilename = (currentData.title || 'bilibili_audio')
+          .replace(/[\\/*?:"<>|]/g, '') + '.m4a';
+        const a = document.createElement('a');
+        const epParam = page.ep_id ? '&ep_id=' + encodeURIComponent(page.ep_id) : '';
+        a.href = API + '/api/bilibili/download-audio?bvid=' + encodeURIComponent(currentData.bvid) +
+          '&cid=' + encodeURIComponent(page.cid) +
+          '&filename=' + encodeURIComponent(audioFilename) +
+          epParam;
+        a.download = audioFilename;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        showStatus('✅ 音频下载完成！', 'success');
+      } catch (err) {
+        showStatus('❌ 音频下载错误：' + err.message, 'error');
+      } finally {
+        btn.textContent = '🎵 仅音频';
+        btn.disabled = false;
+        vbtn.disabled = false;
+      }
+    }
+
+    function loadHistory() {
+      const list = document.getElementById('historyList');
+      const count = document.getElementById('historyCount');
+      const clearBtn = document.getElementById('btnClear');
+      const history = JSON.parse(localStorage.getItem('bilibiliDownloadHistory') || '[]');
+      if (history.length === 0) {
+        count.textContent = '';
+        clearBtn.classList.remove('show');
+        list.innerHTML = '<div class="history-empty">📭 暂无下载记录</div>';
+        return;
+      }
+      count.textContent = '(' + history.length + '条)';
+      clearBtn.classList.add('show');
+      list.innerHTML = history.map(function(item, index) {
+        var safeTitle = escapeHtml(item.title) || '未知视频';
+        var timeStr = item.time ? formatTime(new Date(item.time).getTime() / 1000) : '';
+        var isFresh = item.time && (Date.now() - new Date(item.time).getTime()) < 60000;
+        return '<div class="history-item" style="animation-delay:' + (index * 0.04) + 's" onclick="reParse(\'' + item.video_id + '\')" title="点击重新解析">' +
+          '<div class="h-icon">📺</div>' +
+          '<div class="h-name">' + safeTitle + '</div>' +
+          '<div class="h-meta">' +
+          '<span class="h-time">' + timeStr + '</span>' +
+          (isFresh ? '<span class="h-badge">最新</span>' : '') +
+          '</div>' +
+          '<button class="h-del" onclick="event.stopPropagation();deleteHistoryItem(\'' + item.video_id + '\')" title="删除此记录">✕</button>' +
+          '</div>';
+      }).join('');
+    }
+
+    function deleteHistoryItem(videoId) {
+      showConfirmModal('删除记录', '确定删除此条下载记录？', function() {
+        const history = JSON.parse(localStorage.getItem('bilibiliDownloadHistory') || '[]');
+        const filtered = history.filter(function(item) { return item.video_id !== videoId; });
+        localStorage.setItem('bilibiliDownloadHistory', JSON.stringify(filtered));
+        showStatus('🗑 已删除该记录', 'info');
+        loadHistory();
+      });
+    }
+
+    function clearHistory() {
+      showConfirmModal('清空历史', '确定清空所有下载记录？', function() {
+        localStorage.removeItem('bilibiliDownloadHistory');
+        loadHistory();
+      });
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str || '';
+      return div.innerHTML;
+    }
+
+    function reParse(videoId) {
+      document.getElementById('urlInput').value = 'https://www.bilibili.com/video/' + videoId;
+      parseVideo();
+    }
+
+    document.getElementById('urlInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') parseVideo();
+    });
+    document.getElementById('parseBtn').addEventListener('click', parseVideo);
+    document.getElementById('downloadBtn').addEventListener('click', downloadVideo);
+    document.getElementById('downloadAudioBtn').addEventListener('click', downloadAudio);
+    document.getElementById('btnClear').addEventListener('click', clearHistory);
+    document.getElementById('urlInput').focus();
+    loadHistory();
+
+    // 检查 FFmpeg 状态
+    fetch(API + '/api/bilibili/ffmpeg-status')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        ffmpegAvailable = data.available;
+        updateDownloadBtnText();
+      })
+      .catch(function() { ffmpegAvailable = false; });
+
+    // ===== Cookie 管理 =====
+    (function() {
+      var panelOpen = false;
+      var cookieToggle = document.getElementById('cookieToggle');
+      var cookiePanel = document.getElementById('cookiePanel');
+      var cookieIndicator = document.getElementById('cookieIndicator');
+      var cookieStatus = document.getElementById('cookieStatus');
+
+      cookieToggle.addEventListener('click', function() {
+        panelOpen = !panelOpen;
+        cookiePanel.classList.toggle('open', panelOpen);
+      });
+
+      // 加载已保存状态
+      fetch(API + '/api/bilibili/cookie-status')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.success && data.data.has_cookies) {
+            cookieIndicator.textContent = '已设置';
+            cookieIndicator.classList.add('active');
+          }
+        });
+
+      function showCStatus(msg, type) {
+        cookieStatus.textContent = msg;
+        cookieStatus.className = 'cookie-status show ' + type;
+      }
+
+      document.getElementById('cookieSaveBtn').addEventListener('click', function() {
+        var cookies = {
+          SESSDATA: document.getElementById('cookieSESSDATA').value.trim(),
+          bili_jct: document.getElementById('cookieBiliJct').value.trim(),
+          DedeUserID: document.getElementById('cookieDedeUserID').value.trim(),
+        };
+        if (!cookies.SESSDATA) {
+          showCStatus('请输入 SESSDATA', 'err');
+          return;
+        }
+        fetch(API + '/api/bilibili/set-cookies', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cookies: cookies }),
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.success) {
+            showCStatus('Cookie 已保存！', 'ok');
+            cookieIndicator.textContent = '已设置';
+            cookieIndicator.classList.add('active');
+          } else {
+            showCStatus('保存失败: ' + (data.error || '未知错误'), 'err');
+          }
+        })
+        .catch(function(err) {
+          showCStatus('网络错误: ' + err.message, 'err');
+        });
+      });
+
+      document.getElementById('cookieValidateBtn').addEventListener('click', function() {
+        var cookies = {
+          SESSDATA: document.getElementById('cookieSESSDATA').value.trim(),
+          bili_jct: document.getElementById('cookieBiliJct').value.trim(),
+          DedeUserID: document.getElementById('cookieDedeUserID').value.trim(),
+        };
+        if (!cookies.SESSDATA) {
+          showCStatus('请输入 SESSDATA 以验证', 'err');
+          return;
+        }
+        showCStatus('验证中...', 'ok');
+        var testBvid = (currentData && currentData.bvid) || '';
+        fetch(API + '/api/bilibili/validate-cookies', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cookies: cookies, test_bvid: testBvid }),
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.success) {
+            var d = data.data;
+            var parts = [];
+            parts.push('登录: ' + (d.is_login ? '是' : '否'));
+            if (d.user_name) parts.push('用户: ' + d.user_name);
+            if (d.is_vip) {
+              var vtMap = {0:'', 1:'月度会员', 2:'年度会员'};
+              parts.push('大会员: ' + (vtMap[d.vip_type] || '是'));
+            } else {
+              parts.push('非大会员');
+            }
+            if (d.available_qualities && d.available_qualities.length) {
+              parts.push('可用: ' + d.available_qualities.map(function(q){return q.label;}).join(', '));
+            }
+            showCStatus(parts.join(' | '), d.is_login ? 'ok' : 'err');
+            if (d.is_login && currentData) {
+              showStatus('Cookie 验证成功，请重新解析视频以获取更高质量选项', 'info');
+            }
+          } else {
+            showCStatus('验证失败: ' + (data.error || '未知错误'), 'err');
+          }
+        })
+        .catch(function(err) {
+          showCStatus('网络错误: ' + err.message, 'err');
+        });
+      });
+
+      document.getElementById('cookieClearBtn').addEventListener('click', function() {
+        fetch(API + '/api/bilibili/clear-cookies', { method: 'POST' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.success) {
+            showCStatus('Cookie 已清除', 'ok');
+            cookieIndicator.textContent = '未设置';
+            cookieIndicator.classList.remove('active');
+            document.getElementById('cookieSESSDATA').value = '';
+            document.getElementById('cookieBiliJct').value = '';
+            document.getElementById('cookieDedeUserID').value = '';
+          }
+        });
+      });
+    })();
+
+    // ===== 确认弹窗 =====
+    var _modalCallback = null;
+
+    function showConfirmModal(title, body, onConfirm) {
+      _modalCallback = onConfirm;
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalBody').textContent = body;
+      document.getElementById('modalOverlay').classList.add('show');
+    }
+
+    function closeModalWithAnim(callback) {
+      var overlay = document.getElementById('modalOverlay');
+      if (!overlay.classList.contains('show') || overlay.classList.contains('closing')) return;
+      overlay.classList.add('closing');
+      var box = overlay.querySelector('.modal-box');
+      function onEnd() {
+        box.removeEventListener('animationend', onEnd);
+        overlay.classList.remove('show', 'closing');
+        if (callback) callback();
+      }
+      box.addEventListener('animationend', onEnd);
+    }
+
+    function modalConfirm() {
+      var cb = _modalCallback;
+      _modalCallback = null;
+      closeModalWithAnim(cb);
+    }
+
+    function modalCancel() {
+      _modalCallback = null;
+      closeModalWithAnim();
+    }
+  </script>
+
+  <!-- 确认弹窗 -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-box">
+      <div class="modal-title" id="modalTitle"></div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn-cancel" onclick="modalCancel()">取消</button>
+        <button class="modal-btn modal-btn-confirm" onclick="modalConfirm()">确定</button>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
