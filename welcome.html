@@ -936,7 +936,7 @@
   </div>
 
 <!-- VERSION: 改代码时同步 server.py 的 VERSION -->
-  <p class="version anim-fade" style="animation-delay:1.3s">v3.8.3 · 支持抖音 & 哔哩哔哩</p>
+  <p class="version anim-fade" style="animation-delay:1.3s">v3.9.1 · 支持抖音 & 哔哩哔哩</p>
 
   <div class="ym-corner anim-slide-right" id="ymCorner" style="animation-delay:1.5s">
     <img src="PNG/YM.png" alt="YM">
@@ -1167,6 +1167,11 @@
           }
           ymCorner.removeEventListener('animationend', handler);
         });
+      });
+
+      ymCorner.addEventListener('dblclick', function (e) {
+        e.preventDefault();
+        window.open('/admin.html');
       });
 
       function showYmTooltip() {

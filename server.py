@@ -68,7 +68,7 @@ else:
 
 # ==================== 配置 ====================
 
-VERSION = "3.8.3"
+VERSION = "3.9.1"
 PORT = 8888
 HOST = '127.0.0.1'
 DOWNLOAD_DIR = get_data_path() / "downloads"
@@ -102,6 +102,34 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S'
 )
 logger = logging.getLogger(__name__)
+
+
+# ==================== 日志缓冲（供管理面板使用） ====================
+
+_log_buffer = []
+_log_buffer_lock = threading.Lock()
+_log_buffer_max = 500
+
+
+class _WebLogHandler(logging.Handler):
+    """将日志写入内存缓冲，供 /api/admin/logs SSE 推送"""
+
+    def emit(self, record):
+        try:
+            msg = self.format(record)
+            if '/api/admin/' in msg:
+                return
+            with _log_buffer_lock:
+                _log_buffer.append(msg)
+                if len(_log_buffer) > _log_buffer_max:
+                    _log_buffer.pop(0)
+        except Exception:
+            pass
+
+
+_web_handler = _WebLogHandler()
+_web_handler.setFormatter(logging.Formatter('[%(asctime)s] %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
+logging.getLogger().addHandler(_web_handler)
 
 app = Flask(__name__)
 CORS(app, resources={
@@ -1179,6 +1207,58 @@ def bilibili_validate_cookies():
     except Exception as e:
         logger.error(f"[Bilibili] Cookie 验证失败: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ==================== 管理面板 API ====================
+
+@app.route('/api/admin/status', methods=['GET'])
+def admin_status():
+    """返回服务器状态信息"""
+    cookie_ok = bool(_bilibili_cookies and _bilibili_cookies.get("SESSDATA"))
+    return jsonify({
+        "success": True,
+        "data": {
+            "version": VERSION,
+            "browser": bool(BROWSER_PATH),
+            "browser_name": BROWSER_NAME or "未找到",
+            "ffmpeg": FFMPEG_PATH is not None,
+            "cookies": cookie_ok,
+        }
+    })
+
+
+@app.route('/api/admin/logs', methods=['GET'])
+def admin_logs():
+    """SSE 流式推送日志"""
+    def generate():
+        with _log_buffer_lock:
+            history = list(_log_buffer)
+        for line in history:
+            yield f"data: {line}\n\n"
+        idx = len(history)
+        while True:
+            with _log_buffer_lock:
+                new_lines = _log_buffer[idx:]
+                idx = len(_log_buffer)
+            for line in new_lines:
+                yield f"data: {line}\n\n"
+            yield ": heartbeat\n\n"
+            time.sleep(1)
+
+    return Response(generate(), mimetype='text/event-stream',
+                    headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})
+
+
+@app.route('/api/admin/shutdown', methods=['POST'])
+def admin_shutdown():
+    """关闭服务器并清理临时文件"""
+    logger.info("管理面板请求关闭服务器...")
+    try:
+        BrowserManager.close()
+        BrowserManager.cleanup_profile()
+    except Exception as e:
+        logger.warning(f"关闭清理异常: {e}")
+    os._exit(0)
 
 
 # ==================== FFmpeg 检测与自动下载 ====================

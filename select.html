@@ -6,9 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>选择平台 - 无水印视频下载</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap"
-        rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <style>
         * {
             margin: 0;
@@ -59,16 +58,16 @@
                 0 2px 6px rgba(0, 0, 0, .05),
                 0 16px 48px rgba(0, 0, 0, .08);
             animation:
-                fade-in .5s ease-out both,
-                card-breathe 6s ease-in-out 1.2s infinite;
+                fade-in .3s ease-out both,
+                card-breathe 6s ease-in-out .5s infinite;
         }
 
         .platform-card.douyin {
-            animation-delay: .25s, 1.45s;
+            animation-delay: .08s, .3s;
         }
 
         .platform-card.bilibili {
-            animation-delay: .35s, 1.55s;
+            animation-delay: .12s, .34s;
         }
 
         @keyframes fade-in {
@@ -338,7 +337,7 @@
             transition: transform .25s cubic-bezier(.22, 1, .36, 1),
                 box-shadow .25s ease,
                 background .2s;
-            animation: fade-in .5s ease-out .45s both;
+            animation: fade-in .3s ease-out .15s both;
         }
 
         .back-link:hover {
